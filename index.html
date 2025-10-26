@@ -97,11 +97,11 @@
         /* Flower/Heart Rain */
         .precipitation {
             position: fixed;
-            font-size: 1.5rem;
+            font-size: 2rem; /* Made them a bit bigger */
             animation: fall 5s linear forwards;
             pointer-events: none;
             top: -10vh;
-            z-index: 99;
+            z-index: 101; /* <-- Increased z-index to be ON TOP of the win screen */
         }
 
         @keyframes fall {
@@ -277,7 +277,7 @@
                     winScreen.classList.remove('hidden');
                     winScreen.classList.add('flex');
                     // Start flower/heart rain
-                    rainInterval = setInterval(createPrecipitation, 200);
+                    rainInterval = setInterval(createPrecipitation, 150); /* <-- Increased rain rate */
                 }, 1000); // 1s for cards to fly
             }
 
@@ -305,4 +305,5 @@
     </script>
 </body>
 </html>
+
 
