@@ -131,12 +131,16 @@
         </button>
     </div>
 
+    <!-- === ADDED AUDIO TAG === -->
+    <audio id="correct-sound" src="correct.mp3" preload="auto"></audio>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const gameBoard = document.getElementById('game-board');
             const movesCounter = document.getElementById('moves-counter');
             const winScreen = document.getElementById('win-screen');
             const gameContainer = document.getElementById('game-container');
+            const correctSound = document.getElementById('correct-sound'); // <-- 1. GET THE SOUND
             
             // ------------------------------------------------------------------
             // IMPORTANT: Replace these with your 5 photo filenames
@@ -228,6 +232,10 @@
             }
 
             function disableCards() {
+                // --- 2. PLAY THE SOUND ---
+                correctSound.currentTime = 0; // Rewind sound
+                correctSound.play().catch(e => console.log("Audio play prevented"));
+
                 firstCard.removeEventListener('click', flipCard);
                 secondCard.removeEventListener('click', flipCard);
                 firstCard.classList.add('is-matched');
@@ -305,5 +313,3 @@
     </script>
 </body>
 </html>
-
-
