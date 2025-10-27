@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Match!</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Pacifico', cursive;
@@ -15,14 +17,32 @@
             justify-content: center;
             min-height: 100vh;
             perspective: 1000px;
+            overflow: hidden; /* Prevent scrollbars */
         }
 
+        /* --- Main Content (Hidden by default) --- */
+        #main-content {
+            visibility: hidden; /* Start hidden */
+            opacity: 0; /* Start faded out */
+            transition: opacity 0.5s ease-in; /* Add fade-in */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #main-content.visible { /* Class to show content */
+             visibility: visible;
+             opacity: 1;
+        }
+
+        /* Original Game Styles */
         #game-board {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 1rem;
         }
-        
+
         @media (min-width: 640px) {
             #game-board {
                 grid-template-columns: repeat(5, 1fr);
@@ -32,8 +52,8 @@
         .card {
             width: 80px;
             height: 120px;
-            sm:width: 100px;
-            sm:height: 150px;
+            /* sm:width: 100px; Tailwind classes not directly usable here */
+            /* sm:height: 150px; */
             position: relative;
             transform-style: preserve-3d;
             transition: transform 0.6s, opacity 1s, transform 1s;
@@ -44,6 +64,13 @@
             --card-left: 0;
             --card-top: 0;
         }
+         @media (min-width: 640px) {
+            .card {
+                width: 100px;
+                height: 150px;
+            }
+        }
+
 
         .card.is-flipped {
             transform: rotateY(180deg);
@@ -53,7 +80,7 @@
             pointer-events: none;
             box-shadow: 0 0 20px 5px #059669; /* Green glow for matched */
         }
-        
+
         .card.fly-away {
             opacity: 0;
             /* Animate to the center of the screen */
@@ -88,7 +115,7 @@
             height: 100%;
             object-fit: cover;
         }
-        
+
         #win-screen {
             background-color: rgba(255, 255, 255, 0.9);
             z-index: 100;
@@ -110,61 +137,197 @@
                 opacity: 0;
             }
         }
+
+        /* --- Password Lock Styles (Pink/Purple Theme - based on black layout) --- */
+        #password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(236, 72, 153, 0.65); /* Pink overlay */
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.3s ease-out;
+        }
+
+        #lock-box {
+            background-color: white; /* White box */
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%; /* Responsive width */
+            max-width: 320px; /* Max width matching black example */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        #lock-gif {
+            width: 150px;
+            height: 150px;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #password-input {
+            font-family: 'Orbitron', sans-serif;
+            width: 100%; /* Full width within lock-box padding */
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid #fbcfe8; /* Light pink border */
+            background-color: #fdf2f8; /* Very light pink bg */
+            color: #4b5563; /* Dark text */
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 2px;
+            box-sizing: border-box; /* Include padding/border in width */
+        }
+
+        #password-input:focus {
+            outline: none;
+            border-color: #d946ef; /* Purple border on focus */
+        }
+
+        #submit-button {
+            font-family: 'Orbitron', sans-serif;
+            width: 100%; /* Full width within lock-box padding */
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, #ec4899, #d946ef); /* Gradient like card front */
+            color: white;
+            font-weight: 700;
+            margin-top: 1rem;
+            transition: filter 0.2s ease;
+            border: none;
+            cursor: pointer; /* Added cursor */
+            box-sizing: border-box; /* Include padding/border in width */
+        }
+
+        #submit-button:hover {
+             filter: brightness(1.1); /* Slightly brighten gradient */
+        }
+
+        #error-message {
+            color: #ef4444; /* Red */
+            font-size: 0.9rem;
+            height: 1.25rem; /* Reserve space */
+            margin-top: 0.75rem;
+        }
+
+        /* Shake animation for wrong password */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+        /* --- End Password Lock Styles --- */
+
     </style>
 </head>
 <body class="overflow-hidden">
 
-    <div id="game-container" class="text-center p-6">
-        <h1 id="game-title" class="text-4xl text-pink-600 mb-2">Find the Matches!</h1>
-        <p id="moves-counter" class="text-2xl text-pink-500 mb-4">Moves: 0</p>
-        <div id="game-board">
-            <!-- Cards will be generated by JavaScript -->
+    <!-- --- NEW Password Overlay --- -->
+    <div id="password-overlay">
+        <form id="lock-box">
+            <img id="lock-gif" src="dudu-no-dudu.gif" alt="Dudu Bubu No">
+            <input id="password-input" type="password" placeholder="Enter Password">
+            <p id="error-message"></p>
+            <button id="submit-button" type="submit">Unlock</button>
+        </form>
+    </div>
+
+    <!-- --- Main Content Wrapper --- -->
+    <div id="main-content">
+        <div id="game-container" class="text-center p-6">
+            <h1 id="game-title" class="text-4xl text-pink-600 mb-2">Find the Matches!</h1>
+            <p id="moves-counter" class="text-2xl text-pink-500 mb-4">Moves: 0</p>
+            <div id="game-board">
+                <!-- Cards will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Win Screen (Initially Hidden) -->
+        <div id="win-screen" class="hidden absolute inset-0 flex-col items-center justify-center text-center p-6">
+            <h1 class="text-5xl text-green-600 mb-4">Game Completed!</h1> <!-- Fixed typo -->
+            <p class="text-3xl text-gray-700 mb-6">You successfully found all the matches!</p>
+            <button id="restart-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg text-2xl">
+                Play Again?
+            </button>
         </div>
     </div>
 
-    <!-- Win Screen (Initially Hidden) -->
-    <div id="win-screen" class="hidden absolute inset-0 flex-col items-center justify-center text-center p-6">
-        <h1 class="text-5xl text-green-600 mb-4">Daamee Tompleted!</h1>
-        <p class="text-3xl text-gray-700 mb-6">You successfully found all the matches!</p>
-        <button id="restart-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg text-2xl">
-            Play Again?
-        </button>
-    </div>
 
     <!-- === ADDED AUDIO TAG === -->
     <audio id="correct-sound" src="correct.mp3" preload="auto"></audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const gameBoard = document.getElementById('game-board');
-            const movesCounter = document.getElementById('moves-counter');
-            const winScreen = document.getElementById('win-screen');
-            const gameContainer = document.getElementById('game-container');
-            const correctSound = document.getElementById('correct-sound'); // <-- 1. GET THE SOUND
-            
-            // ------------------------------------------------------------------
-            // IMPORTANT: Replace these with your 5 photo filenames
-            // ------------------------------------------------------------------
-            const photoNames = [
-                "photo1.jpg", 
-                "photo2.jpg", 
-                "photo3.jpg", 
-                "photo4.jpg", 
-                "photo5.jpg"
-            ];
-            // ------------------------------------------------------------------
 
-            // Create 4 copies of each photo for 20 cards total
-            const cardImages = [...photoNames, ...photoNames, ...photoNames, ...photoNames];
+            // --- Password Lock Elements ---
+            const passwordOverlay = document.getElementById('password-overlay');
+            const lockBox = document.getElementById('lock-box');
+            const passwordInput = document.getElementById('password-input');
+            const errorMessage = document.getElementById('error-message');
+            const mainContent = document.getElementById('main-content');
+            const correctPassword = "28072018";
 
-            let hasFlippedCard = false;
-            let lockBoard = false;
-            let firstCard, secondCard;
-            let moves = 0;
-            let matchesFound = 0;
-            let rainInterval;
+            // --- Game Elements ---
+            let gameBoard, movesCounter, winScreen, gameContainer, correctSound;
+            let photoNames, cardImages;
+            let hasFlippedCard, lockBoard, firstCard, secondCard;
+            let moves, matchesFound, rainInterval;
 
-            function shuffle(array) {
+            // --- Function to Initialize the Game ---
+            function initializeGame() {
+                gameBoard = document.getElementById('game-board');
+                movesCounter = document.getElementById('moves-counter');
+                winScreen = document.getElementById('win-screen');
+                gameContainer = document.getElementById('game-container');
+                correctSound = document.getElementById('correct-sound');
+
+                // ------------------------------------------------------------------
+                // IMPORTANT: Replace these with your 5 photo filenames
+                // ------------------------------------------------------------------
+                photoNames = [
+                    "photo1.jpg",
+                    "photo2.jpg",
+                    "photo3.jpg",
+                    "photo4.jpg",
+                    "photo5.jpg"
+                ];
+                // ------------------------------------------------------------------
+
+                cardImages = [...photoNames, ...photoNames, ...photoNames, ...photoNames];
+
+                hasFlippedCard = false;
+                lockBoard = false;
+                firstCard = null;
+                secondCard = null;
+                moves = 0;
+                matchesFound = 0;
+                rainInterval = null;
+
+                document.getElementById('restart-button').addEventListener('click', createBoard);
+
+                // Initial board creation
+                createBoard();
+            }
+
+            // --- Helper Functions (can be outside initializeGame) ---
+             function shuffle(array) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [array[i], array[j]] = [array[j], array[i]];
@@ -176,6 +339,7 @@
                 // Reset game state
                 gameBoard.innerHTML = '';
                 winScreen.classList.add('hidden');
+                winScreen.classList.remove('flex'); // Ensure flex is removed
                 gameContainer.classList.remove('hidden');
                 moves = 0;
                 matchesFound = 0;
@@ -199,6 +363,7 @@
                     card.addEventListener('click', flipCard);
                     gameBoard.appendChild(card);
                 });
+                resetBoard(); // Reset board variables
             }
 
             function flipCard() {
@@ -208,22 +373,20 @@
                 this.classList.add('is-flipped');
 
                 if (!hasFlippedCard) {
-                    // First card clicked
                     hasFlippedCard = true;
                     firstCard = this;
                     return;
                 }
 
-                // Second card clicked
                 secondCard = this;
-                hasFlippedCard = false;
+                // hasFlippedCard = false; // Reset happens in resetBoard
                 updateMoves();
                 checkForMatch();
             }
 
             function checkForMatch() {
                 let isMatch = firstCard.dataset.image === secondCard.dataset.image;
-                
+
                 if (isMatch) {
                     disableCards();
                 } else {
@@ -232,7 +395,6 @@
             }
 
             function disableCards() {
-                // --- 2. PLAY THE SOUND ---
                 correctSound.currentTime = 0; // Rewind sound
                 correctSound.play().catch(e => console.log("Audio play prevented"));
 
@@ -240,21 +402,21 @@
                 secondCard.removeEventListener('click', flipCard);
                 firstCard.classList.add('is-matched');
                 secondCard.classList.add('is-matched');
-                
+
                 matchesFound++;
-                
+
                 if (matchesFound === 10) { // 10 pairs = 20 cards
                     setTimeout(winGame, 1000);
+                } else {
+                     resetBoard(); // Only reset board if game not won yet
                 }
-
-                resetBoard();
             }
 
             function unflipCards() {
                 lockBoard = true;
                 setTimeout(() => {
-                    firstCard.classList.remove('is-flipped');
-                    secondCard.classList.remove('is-flipped');
+                    if(firstCard) firstCard.classList.remove('is-flipped');
+                    if(secondCard) secondCard.classList.remove('is-flipped');
                     resetBoard();
                 }, 1200);
             }
@@ -270,23 +432,19 @@
             }
 
             function winGame() {
-                // "Collect" all cards animation
                 document.querySelectorAll('.card').forEach(card => {
-                    // Store its position for the animation
                     const rect = card.getBoundingClientRect();
                     card.style.setProperty('--card-left', `${rect.left}px`);
                     card.style.setProperty('--card-top', `${rect.top}px`);
                     card.classList.add('fly-away');
                 });
-                
-                // After animation, show win screen
+
                 setTimeout(() => {
                     gameContainer.classList.add('hidden');
                     winScreen.classList.remove('hidden');
                     winScreen.classList.add('flex');
-                    // Start flower/heart rain
-                    rainInterval = setInterval(createPrecipitation, 150); /* <-- Increased rain rate */
-                }, 1000); // 1s for cards to fly
+                    rainInterval = setInterval(createPrecipitation, 150);
+                }, 1000);
             }
 
             function createPrecipitation() {
@@ -305,11 +463,37 @@
                 }, 5000);
             }
 
-            document.getElementById('restart-button').addEventListener('click', createBoard);
+            // --- Password Lock Logic ---
+            if (sessionStorage.getItem('isUnlocked') === 'true') {
+                passwordOverlay.style.display = 'none';
+                mainContent.classList.add('visible');
+                initializeGame(); // Start the game if already unlocked
+            }
 
-            // Initial board creation
-            createBoard();
-        });
+            lockBox.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const enteredPassword = passwordInput.value;
+
+                if (enteredPassword === correctPassword) {
+                    sessionStorage.setItem('isUnlocked', 'true');
+                    passwordOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        passwordOverlay.style.display = 'none';
+                    }, 300);
+                    mainContent.classList.add('visible'); // Show and fade in game
+                    initializeGame(); // Start the game now
+                } else {
+                    errorMessage.textContent = 'Wrong Password. Try Again!';
+                    lockBox.classList.add('shake');
+                    passwordInput.value = '';
+                    setTimeout(() => {
+                        lockBox.classList.remove('shake');
+                        errorMessage.textContent = '';
+                    }, 1000);
+                }
+            });
+
+        }); // End of DOMContentLoaded
     </script>
 </body>
 </html>
