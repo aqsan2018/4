@@ -17,7 +17,7 @@
             justify-content: center;
             min-height: 100vh;
             perspective: 1000px;
-            overflow: hidden; /* Prevent scrollbars */
+            /* overflow: hidden; <-- REMOVED this line */
         }
 
         /* --- Main Content (Hidden by default) --- */
@@ -237,7 +237,7 @@
 
     </style>
 </head>
-<body class="overflow-hidden">
+<body > <!-- Removed class="overflow-hidden" -->
 
     <!-- --- NEW Password Overlay --- -->
     <div id="password-overlay">
@@ -497,3 +497,4 @@
     </script>
 </body>
 </html>
+
